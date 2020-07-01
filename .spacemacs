@@ -73,7 +73,14 @@ values."
               clojure-enable-sayid t
               clojure-enable-clj-refactor t
               clojure-enable-fancify-symbols t
-              clojure-enable-linters 'clj-kondo)
+              clojure-enable-linters 'clj-kondo
+              clojure-indent-style 'align-arguments
+              clojure-align-forms-automatically t
+              cider-repl-display-help-banner nil
+              cider-repl-use-pretty-printing t
+              cider-save-file-on-load t
+              cider-prompt-for-symbol nil
+              cider-repl-buffer-size-limit 10000)
      spell-checking
      treemacs
      (version-control :variables
@@ -102,7 +109,8 @@ values."
    dotspacemacs-additional-packages
    '(all-the-icons
      yasnippet-snippets
-     beacon)
+     beacon
+     helm-cider)
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
    ;; A list of packages that will not be installed and loaded.
@@ -341,7 +349,7 @@ values."
    ;; `trailing' to delete only the whitespace at end of lines, `changed'to
    ;; delete only whitespace for changed lines or `nil' to disable cleanup.
    ;; (default nil)
-   dotspacemacs-whitespace-cleanup nil
+   dotspacemacs-whitespace-cleanup 'trailing
    ))
 
 (defun dotspacemacs/user-init ()
@@ -366,8 +374,6 @@ you should place your code here."
     (setq ns-option-modifier (quote super)))
   (setq-default
    global-company-mode t
-   clojure-indent-style 'align-arguments
-   clojure-align-forms-automatically t
    org-capture-templates '(("t" "New TODO" entry
                             (file+headline "~/org/todo.org" "予定")
                             "* TODO %?\n\n")
@@ -378,44 +384,73 @@ you should place your code here."
    rainbow-latex-colors t
    rainbow-ansi-colors t
    beacon-mode 1
-   global-auto-revert-mode 1)
+   global-auto-revert-mode 1
+   projectile-globally-ignored-files '("*.js" "*.cache.transit.json" "*.js.map" "*.jar"))
   (global-aggressive-indent-mode)
   (global-rainbow-identifiers-mode)
+  (helm-cider-mode 1)
 
   ;; Hooks
   (add-hook 'prog-mode-hook 'rainbow-mode)
+  (add-hook 'cider-repl-mode-hook #'cider-company-enable-fuzzy-completion)
+  (add-hook 'cider-mode-hook #'cider-company-enable-fuzzy-completion)
 
   ;; Keybindings
   (keyboard-translate ?\C-h ?\C-?)
-  (global-set-key (kbd "M-s-<backspace>") 'sp-unwrap-sexp)
-  (global-set-key (kbd "s-<backspace>") 'sp-backward-unwrap-sexp)
-  (global-set-key (kbd "C-s-p") 'sp-add-to-previous-sexp)
-  (global-set-key (kbd "C-s-n") 'sp-add-to-next-sexp)
-  (global-set-key (kbd "M-/") 'undo-tree-redo)
-  (global-set-key (kbd "C-c a") 'evil-toggle-fold)
-  (global-set-key (kbd "C-c o") 'evil-open-folds)
-  (global-set-key (kbd "C-c c") 'evil-close-folds)
-  (global-set-key (kbd "M-o") 'ace-window)
-  (global-set-key (kbd "C->") 'mc/mark-next-like-this)
-  (global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
-  (global-set-key (kbd "C-c C-<") 'mc/mark-all-like-this)
-  (global-set-key (kbd "C-q") 'treemacs)
-  (global-set-key (kbd "C-<left>") 'shrink-window-horizontally)
-  (global-set-key (kbd "C-<right>") 'enlarge-window-horizontally)
-  (global-set-key (kbd "C-<down>") 'shrink-window)
-  (global-set-key (kbd "C-<up>") 'enlarge-window)
-  (global-set-key (kbd "<left>")  'windmove-left)
-  (global-set-key (kbd "<down>")  'windmove-down)
-  (global-set-key (kbd "<up>")    'windmove-up)
-  (global-set-key (kbd "<right>") 'windmove-right)
-  (global-set-key (kbd "C-'") 'helm-mini)
-  (global-set-key "\M-n" (lambda () (interactive) (scroll-up 1)))
-  (global-set-key "\M-p" (lambda () (interactive) (scroll-down 1)))
-  (global-set-key (kbd "C-M-/") 'helm-yas-complete)
-  (define-key eyebrowse-mode-map (kbd "C-M-.") 'eyebrowse-next-window-config)
-  (define-key eyebrowse-mode-map (kbd "C-M-,") 'eyebrowse-prev-window-config)
-  (define-key company-active-map (kbd "C-n") 'company-select-next)
-  (define-key company-active-map (kbd "C-p") 'company-select-previous)
+  (bind-keys
+   ("M-/" . undo-tree-redo)
+   ("C-c a" . evil-toggle-fold)
+   ("C-c o" . evil-open-folds)
+   ("C-c c" . evil-close-folds)
+   ("M-o" . ace-window)
+   ("C->" . mc/mark-next-like-this)
+   ("C-<" . mc/mark-previous-like-this)
+   ("C-c C-<" . mc/mark-all-like-this)
+   ("C-q" . treemacs)
+   ("C-'" . helm-mini)
+   ("\M-n" . (lambda () (interactive) (scroll-up 1)))
+   ("\M-p" . (lambda () (interactive) (scroll-down 1)))
+   ("C-M-/" . helm-yas-complete)
+   ("C-c r" . helm-recentf)
+   ("C-c k" . helm-show-kill-ring)
+   ("C-c i" . helm-imenu)
+   ("C-c f" . helm-regexp)
+   ("<left>" . windmove-left)
+   ("<down>" . windmove-down)
+   ("<up>" . windmove-up)
+   ("<right>" . windmove-right)
+
+   :map smartparens-mode-map
+   ("C-M-a" . sp-beginning-of-sexp)
+   ("C-M-e" . sp-end-of-sexp)
+   ("C-<up>"   . sp-backward-up-sexp)
+   ("C-<down>" . sp-down-sexp)
+   ("M-<up>"   . sp-up-sexp)
+   ("M-<down>" . sp-backward-down-sexp)
+   ("C-M-f" . sp-forward-sexp)
+   ("C-M-b" . sp-backward-sexp)
+   ("C-M-n" . sp-next-sexp)
+   ("C-M-p" . sp-previous-sexp)
+   ("C-s-f" . sp-forward-symbol)
+   ("C-s-b" . sp-backward-symbol)
+   ("C-<right>" . sp-forward-slurp-sexp)
+   ("M-<right>" . sp-forward-barf-sexp)
+   ("C-<left>"  . sp-backward-slurp-sexp)
+   ("M-<left>"  . sp-backward-barf-sexp)
+   ("C-M-t" . sp-transpose-sexp)
+   ("C-M-k" . sp-kill-sexp)
+   ("C-k"   . sp-kill-hybrid-sexp)
+   ("M-k"   . sp-backward-kill-sexp)
+   ("C-M-w" . sp-copy-sexp)
+   ("M-<backspace>" . backward-kill-word)
+   ("C-<backspace>" . sp-backward-kill-word)
+   ([remap sp-backward-kill-word] . backward-kill-word)
+   ("M-[" . sp-backward-unwrap-sexp)
+   ("M-]" . sp-unwrap-sexp)
+
+   :map eyebrowse-mode-map
+   ("C-M-," . eyebrowse-prev-window-config)
+   ("C-M-." . eyebrowse-next-window-config))
 
   ;; Font Setting
   (set-fontset-font
@@ -432,7 +467,20 @@ you should place your code here."
      ((t (:inherit company-tooltip :weight bold :underline nil))))
    '(company-tooltip-common-selection
      ((t (:inherit company-tooltip-selection :weight bold :underline nil)))))
-  (spacemacs/toggle-highlight-current-line-globally-off))
+  (spacemacs/toggle-highlight-current-line-globally-off)
+  (defun aggressive-indent--indent-if-changed (buffer)
+    "Indent any region that changed in BUFFER in the last command loop."
+    (if (not (buffer-live-p buffer))
+        (and aggressive-indent--idle-timer
+             (cancel-timer aggressive-indent--idle-timer))
+      (with-current-buffer buffer
+        (when (and aggressive-indent-mode aggressive-indent--changed-list)
+          (save-excursion
+            (save-selected-window
+              (aggressive-indent--while-no-input
+                (aggressive-indent--proccess-changed-list-and-indent))))
+          (when (timerp aggressive-indent--idle-timer)
+            (cancel-timer aggressive-indent--idle-timer)))))))
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
@@ -466,7 +514,7 @@ This function is called at the very end of Spacemacs initialization."
    ;; If there is more than one, they won't work right.
    '(package-selected-packages
      (quote
-      (beacon sql-indent yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic jinja2-mode company-ansible ansible-doc ansible yasnippet-snippets rvm ruby-tools ruby-test-mode rubocop rspec-mode robe rbenv rake minitest chruby bundler inf-ruby company insert-shebang fish-mode company-shell yaml-mode nginx-mode xterm-color shell-pop multi-term eshell-z eshell-prompt-extras esh-help flycheck-pos-tip pos-tip unfill mwim mmm-mode markdown-toc markdown-mode git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gh-md flyspell-correct-helm flyspell-correct diff-hl auto-dictionary tide typescript-mode flycheck web-mode tagedit slim-mode scss-mode sass-mode pug-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data web-beautify livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor js2-mode js-doc company-tern dash-functional tern coffee-mode all-the-icons memoize smeargle reveal-in-osx-finder pbcopy osx-trash osx-dictionary orgit org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download magit-gitflow magit-popup launchctl htmlize helm-gitignore gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit transient git-commit with-editor clj-refactor inflections edn multiple-cursors paredit yasnippet peg cider-eval-sexp-fu cider sesman queue parseedn clojure-mode parseclj a ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async)))
+      (helm-cider sql-indent yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic jinja2-mode company-ansible ansible-doc ansible yasnippet-snippets rvm ruby-tools ruby-test-mode rubocop rspec-mode robe rbenv rake minitest chruby bundler inf-ruby company insert-shebang fish-mode company-shell yaml-mode nginx-mode xterm-color shell-pop multi-term eshell-z eshell-prompt-extras esh-help flycheck-pos-tip pos-tip unfill mwim mmm-mode markdown-toc markdown-mode git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gh-md flyspell-correct-helm flyspell-correct diff-hl auto-dictionary tide typescript-mode flycheck web-mode tagedit slim-mode scss-mode sass-mode pug-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data web-beautify livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor js2-mode js-doc company-tern dash-functional tern coffee-mode all-the-icons memoize smeargle reveal-in-osx-finder pbcopy osx-trash osx-dictionary orgit org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download magit-gitflow magit-popup launchctl htmlize helm-gitignore gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit transient git-commit with-editor clj-refactor inflections edn multiple-cursors paredit yasnippet peg cider-eval-sexp-fu cider sesman queue parseedn clojure-mode parseclj a ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async)))
    '(safe-local-variable-values
      (quote
       ((cider-default-cljs-repl . shadow)
