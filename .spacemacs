@@ -43,7 +43,8 @@ values."
      typescript
      html
      javascript
-     helm
+     tern
+     ivy
      (auto-completion :variables
                       auto-completion-enable-snippets-in-popup t
                       auto-completion-enable-help-tooltip t
@@ -59,8 +60,10 @@ values."
           git-enable-github-support t
           git-gutter-use-fringe t)
      (markdown :variables markdown-live-preview-engine 'vmd)
-     multiple-cursors
-     org
+     (multiple-cursors :variables
+                       multiple-cursors-backend 'mc)
+     (org :variables
+          org-projectile-file "TODOs.org")
      (shell :variables
             shell-default-shell 'multi-term
             multi-term-program "/usr/local/bin/fish"
@@ -94,15 +97,7 @@ values."
      github
      restclient
      (colors :valiables
-             colors-colorize-identifiers 'all)
-     ;; (geolocation :variables
-     ;;              geolocation-enable-location-service t
-     ;;              geolocation-enable-weather-forecast t
-     ;;              sunshine-appid "a50fab6dea02b9d344d7cb7c93426e1f"
-     ;;              sunshine-location "Hanoi, VN"
-     ;;              sunshine-units 'metric
-     ;;              sunshine-show-icons t)
-     )
+             colors-colorize-identifiers 'all))
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
    ;; packages, then consider creating a layer. You can also put the
@@ -111,9 +106,6 @@ values."
    '(all-the-icons
      yasnippet-snippets
      beacon
-     helm-cider
-     posframe
-     helm-posframe
      cider-hydra)
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -195,8 +187,8 @@ values."
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
    ;; quickly tweak the mode-line size to make separators look not too crappy.
-   dotspacemacs-default-font '("Ricty Diminished Discord for Powerline"
-                               :size 16
+   dotspacemacs-default-font '("HackGenNerd"
+                               :size 18
                                :weight normal
                                :width normal
                                :powerline-scale 1.1)
@@ -373,111 +365,98 @@ This is the place where most of your configurations should be done. Unless it is
 explicitly specified that a variable should be set before a package is loaded,
 you should place your code here."
 
-  ;; hydra-posframe
-  (add-to-list 'load-path "~/.emacs.d/custom/hydra-posframe")
-  (require 'hydra-posframe)
-  (hydra-posframe-enable)
-
-  ;; which-key-posframe
-  ;; (add-to-list 'load-path "~/.emacs.d/custom/which-key-posframe")
-  ;; (require 'which-key-posframe)
-  ;; (which-key-posframe-mode)
-
-
   ;; Variables
   (when (and (eq system-type 'darwin) (eq window-system 'ns))
     (setq ns-command-modifier (quote meta))
-    (setq ns-option-modifier (quote super)))
+    (setq ns-option-modifier (quote super))
+    (setq dired-use-ls-dired nil)
+
+    (defun quick-look-dwim()
+      (interactive)
+      (call-process-shell-command
+       (format "qlmanage %s -p  &>/dev/null"
+               (treemacs--nearest-path (treemacs-current-button)))
+       nil 0))
+
+    (with-eval-after-load "treemacs"
+      (define-key treemacs-mode-map (kbd "SPC") 'quick-look-dwim)))
+
   (setq-default
-   org-capture-templates '(("t" "New TODO" entry
-                            (file+headline "~/org/todo.org" "予定")
-                            "* TODO %?\n\n")
-                           )
-   org-agenda-files '("~/org/todo.org")
    rainbow-html-colors t
    rainbow-x-colors t
    rainbow-latex-colors t
    rainbow-ansi-colors t
-   projectile-globally-ignored-files '("*.js" "*.cache.transit.json" "*.js.map" "*.jar")
-   helm-posframe-parameters '((left-fringe . 10) (right-fringe . 10))
-   helm-posframe-poshandler 'posframe-poshandler-frame-bottom-center
-   hydra-posframe-parameters '((left-fringe . 10) (right-fringe . 10))
-   hydra-posframe-poshandler 'posframe-poshandler-frame-bottom-center
-   ;; which-key-posframe-parameters '((left-fringe . 10) (right-fringe . 10))
-   ;; which-key-posframe-poshandler 'posframe-poshandler-frame-bottom-center
-   )
+   projectile-globally-ignored-files '("*.js" "*.cache.transit.json" "*.js.map" "*.jar"))
 
   ;; Modes
   (global-auto-revert-mode 1)
   (global-company-mode t)
-  (global-aggressive-indent-mode)
   (global-rainbow-identifiers-mode)
-  (helm-cider-mode 1)
   (beacon-mode 1)
-  (helm-posframe-enable)
   (volatile-highlights-mode t)
 
   ;; Hooks
   (add-hook 'prog-mode-hook #'rainbow-mode)
-  (add-hook 'prog-mode-hook #'tab-line-mode)
+  (add-hook 'ansible-doc-mode-hook #'tab-line-mode)
   (add-hook 'cider-repl-mode-hook #'cider-company-enable-fuzzy-completion)
   (add-hook 'cider-mode-hook #'cider-company-enable-fuzzy-completion)
   (add-hook 'clojure-mode-hook #'cider-hydra-mode)
+  (add-hook 'clojure-mode-hook #'aggressive-indent-mode)
 
   ;; Keybindings
   (keyboard-translate ?\C-h ?\C-?)
   (bind-keys
    ("M-/" . undo-tree-redo)
    ("C-c a" . evil-toggle-fold)
-   ("C-c o" . evil-open-folds)
-   ("C-c c" . evil-close-folds)
    ("M-o" . ace-window)
    ("C->" . mc/mark-next-like-this)
    ("C-<" . mc/mark-previous-like-this)
-   ("C-c C-<" . mc/mark-all-like-this)
+   ("C-s-." . mc/skip-to-next-like-this)
+   ("C-s-," . mc/skip-to-previous-like-this)
+   ("M-s-." . mc/unmark-next-like-this)
+   ("M-s-," . mc/unmark-previous-like-this)
+   ("C-c C->" . mc/mark-all-like-this)
    ("C-q" . treemacs)
    ("C-'" . imenu-list-smart-toggle)
    ("M-n" . (lambda () (interactive) (scroll-up 1)))
    ("M-p" . (lambda () (interactive) (scroll-down 1)))
-   ("C-M-/" . helm-yas-complete)
-   ("C-c r" . helm-recentf)
-   ("C-c k" . helm-show-kill-ring)
-   ("C-c i" . helm-imenu)
-   ("C-c f" . helm-regexp)
+   ("C-M-/" . ivy-yasnippet)
+   ("C-c r" . ivy-switch-buffer)
+   ("C-c k" . counsel-yank-pop)
+   ("C-c i" . counsel-imenu)
    ("<left>" . windmove-left)
    ("<down>" . windmove-down)
    ("<up>" . windmove-up)
    ("<right>" . windmove-right)
-   ("C-<tab>" . next-buffer)
-   ("<backtab>" . previous-buffer)
+   ("C-s-n" . next-buffer)
+   ("C-s-p" . previous-buffer)
+   ("M-m /" . counsel-git-grep)
 
    :map smartparens-mode-map
-   ("C-M-a" . sp-beginning-of-sexp)
-   ("C-M-e" . sp-end-of-sexp)
-   ("C-<up>"   . sp-backward-up-sexp)
-   ("C-<down>" . sp-down-sexp)
-   ("M-<up>"   . sp-up-sexp)
-   ("M-<down>" . sp-backward-down-sexp)
+   ("C-S-a" . sp-beginning-of-sexp)
+   ("C-S-e" . sp-end-of-sexp)
+   ("C-M-d" . sp-down-sexp)
+   ("C-M-u" . sp-backward-up-sexp)
+   ("C-M-e" . sp-up-sexp)
+   ("C-M-a" . sp-backward-down-sexp)
    ("C-M-f" . sp-forward-sexp)
    ("C-M-b" . sp-backward-sexp)
    ("C-M-n" . sp-next-sexp)
    ("C-M-p" . sp-previous-sexp)
-   ("C-s-f" . sp-forward-symbol)
-   ("C-s-b" . sp-backward-symbol)
    ("C-<right>" . sp-forward-slurp-sexp)
    ("M-<right>" . sp-forward-barf-sexp)
-   ("C-<left>"  . sp-backward-slurp-sexp)
-   ("M-<left>"  . sp-backward-barf-sexp)
+   ("C-<left>" . sp-backward-slurp-sexp)
+   ("M-<left>" . sp-backward-barf-sexp)
    ("C-M-t" . sp-transpose-sexp)
+   ("C-k" . sp-kill-hybrid-sexp)
    ("C-M-k" . sp-kill-sexp)
-   ("C-k"   . sp-kill-hybrid-sexp)
-   ("M-k"   . sp-backward-kill-sexp)
+   ("C-M-h" . sp-backward-kill-sexp)
    ("C-M-w" . sp-copy-sexp)
-   ("M-<backspace>" . backward-kill-word)
-   ("C-<backspace>" . sp-backward-kill-word)
-   ([remap sp-backward-kill-word] . backward-kill-word)
-   ("M-[" . sp-backward-unwrap-sexp)
+   ("C-M-m" . sp-backward-copy-sexp)
    ("M-]" . sp-unwrap-sexp)
+   ("M-[" . sp-backward-unwrap-sexp)
+   ("C-M-]" . sp-select-next-thing)
+   ("C-M-[" . sp-select-previous-thing)
 
    :map eyebrowse-mode-map
    ("C-M-," . eyebrowse-prev-window-config)
@@ -486,39 +465,25 @@ you should place your code here."
   ;; Font Setting
   (set-fontset-font
    nil 'japanese-jisx0208
-   (font-spec :family "Ricty Diminished Discord for Powerline"))
+   (font-spec :family "HackGenNerd"))
 
-  ;; Custom face attribute
-  (add-hook
-   'tab-line-mode-hook
-   (lambda () (progn
-                (set-face-attribute
-                 'tab-line nil
-                 :background (face-attribute 'default :background)
-                 :height 1.0)
-                (set-face-attribute
-                 'tab-line-tab nil
-                 :family (face-attribute 'default :family)
-                 :background (face-attribute 'mode-line :background)
-                 :foreground (face-attribute 'default :foreground)
-                 :box nil)
-                (set-face-attribute
-                 'tab-line-tab-inactive nil
-                 :family (face-attribute 'default :family)
-                 :background (face-attribute 'mode-line :background)
-                 :foreground (face-attribute 'default :foreground)
-                 :box nil)
-                (set-face-attribute
-                 'tab-line-tab-current nil
-                 :family (face-attribute 'default :family)
-                 :background (face-attribute 'spacemacs-emacs-face :background)
-                 :foreground (face-attribute 'spacemacs-emacs-face :foreground)
-                 :box nil)
-                (set-face-attribute
-                 'tab-line-highlight nil
-                 :family (face-attribute 'default :family)
-                 :background (face-attribute 'tooltip :background)
-                 :foreground (face-attribute 'tooltip :foreground)))))
+  ;; Org
+  (with-eval-after-load 'org
+    (setq org-hide-leading-stars t)
+    (setq org-superstar-headline-bullets-list '("⚡" "" "" "" "" "" "" "" "" ""))
+    (setq org-capture-templates
+          '(("t" "Todo" entry (file+headline "~/aoba17/TODOs.org" "Tasks")
+             "* TODO %?\n  %i\n  %a")
+            ("m" "Memo" entry (file+datetree "~/aoba17/memo.org")
+             "* %?\nEntered on %U\n  %i\n  %a")))
+    (add-hook 'org-mode-hook #'visual-line-mode)
+    (add-hook 'visual-line-mode-hook #'visual-fill-column-mode))
+  (with-eval-after-load 'org-agenda
+    (require 'org-projectile)
+    (mapcar #'(lambda (file)
+                (when (file-exists-p file)
+                  (push file org-agenda-files)))
+            (org-projectile-todo-files)))
 
   ;; Other
 
@@ -528,27 +493,7 @@ you should place your code here."
    '(company-tooltip-common-selection
      ((t (:inherit company-tooltip-selection :weight bold :underline nil)))))
 
-  (spacemacs/toggle-highlight-current-line-globally-off)
-
-  (defun aggressive-indent--indent-if-changed (buffer)
-    "Indent any region that changed in BUFFER in the last command loop."
-    (if (not (buffer-live-p buffer))
-        (and aggressive-indent--idle-timer
-             (cancel-timer aggressive-indent--idle-timer))
-      (with-current-buffer buffer
-        (when (and aggressive-indent-mode aggressive-indent--changed-list)
-          (save-excursion
-            (save-selected-window
-              (aggressive-indent--while-no-input
-                (aggressive-indent--proccess-changed-list-and-indent))))
-          (when (timerp aggressive-indent--idle-timer)
-            (cancel-timer aggressive-indent--idle-timer))))))
-
-  ;; (add-to-list 'auto-mode-alist '("\\.mm?$" . objc-mode))
-  ;; (add-to-list 'magic-mode-alist '("\\(.\\|\n\\)*\n@implementation" . objc-mode))
-  ;; (add-to-list 'magic-mode-alist '("\\(.\\|\n\\)*\n@interface" . objc-mode))
-  ;; (add-to-list 'magic-mode-alist '("\\(.\\|\n\\)*\n@protocol" . objc-mode))
-  )
+  (spacemacs/toggle-highlight-current-line-globally-off))
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
@@ -581,7 +526,7 @@ This function is called at the very end of Spacemacs initialization."
    ;; Your init file should contain only one such instance.
    ;; If there is more than one, they won't work right.
    '(package-selected-packages
-     '(cider-hydra sql-indent yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic jinja2-mode company-ansible ansible-doc ansible yasnippet-snippets rvm ruby-tools ruby-test-mode rubocop rspec-mode robe rbenv rake minitest chruby bundler inf-ruby company insert-shebang fish-mode company-shell yaml-mode nginx-mode xterm-color shell-pop multi-term eshell-z eshell-prompt-extras esh-help flycheck-pos-tip pos-tip unfill mwim mmm-mode markdown-toc markdown-mode git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gh-md flyspell-correct-helm flyspell-correct diff-hl auto-dictionary tide typescript-mode flycheck web-mode tagedit slim-mode scss-mode sass-mode pug-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data web-beautify livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor js2-mode js-doc company-tern dash-functional tern coffee-mode all-the-icons memoize smeargle reveal-in-osx-finder pbcopy osx-trash osx-dictionary orgit org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download magit-gitflow magit-popup launchctl htmlize helm-gitignore gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit transient git-commit with-editor clj-refactor inflections edn multiple-cursors paredit yasnippet peg cider-eval-sexp-fu cider sesman queue parseedn clojure-mode parseclj a ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))
+     '(wgrep smex ivy-yasnippet ivy-xref ivy-purpose ivy-hydra flyspell-correct-ivy counsel-projectile counsel-dash counsel-css counsel swiper ivy sql-indent yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic jinja2-mode company-ansible ansible-doc ansible yasnippet-snippets rvm ruby-tools ruby-test-mode rubocop rspec-mode robe rbenv rake minitest chruby bundler inf-ruby company insert-shebang fish-mode company-shell yaml-mode nginx-mode xterm-color shell-pop multi-term eshell-z eshell-prompt-extras esh-help flycheck-pos-tip pos-tip unfill mwim mmm-mode markdown-toc markdown-mode git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gh-md flyspell-correct-helm flyspell-correct diff-hl auto-dictionary tide typescript-mode flycheck web-mode tagedit slim-mode scss-mode sass-mode pug-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data web-beautify livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor js2-mode js-doc company-tern dash-functional tern coffee-mode all-the-icons memoize smeargle reveal-in-osx-finder pbcopy osx-trash osx-dictionary orgit org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download magit-gitflow magit-popup launchctl htmlize helm-gitignore gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit transient git-commit with-editor clj-refactor inflections edn multiple-cursors paredit yasnippet peg cider-eval-sexp-fu cider sesman queue parseedn clojure-mode parseclj a ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))
    '(safe-local-variable-values
      '((cider-default-cljs-repl . shadow)
        (cider-shadow-cljs-default-options . "app"))))
