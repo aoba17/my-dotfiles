@@ -72,11 +72,18 @@ values."
      (syntax-checking :variables
                       syntax-checking-enable-tooltips t
                       syntax-checking-enable-by-default t)
+     (lsp :valiables
+          lsp-lens-enable t
+          lsp-signature-auto-activate nil
+          lsp-enable-indentation nil
+          lsp-enable-on-type-formatting nil
+          lsp-file-watch-threshold 10000
+          lsp-log-io nil)
      (clojure :variables
               clojure-enable-sayid t
               clojure-enable-clj-refactor t
               clojure-enable-fancify-symbols t
-              clojure-enable-linters 'clj-kondo
+              ;;clojure-enable-linters 'clj-kondo
               clojure-indent-style 'align-arguments
               clojure-align-forms-automatically t
               cider-repl-display-help-banner nil
@@ -85,7 +92,8 @@ values."
               cider-prompt-for-symbol nil
               cider-repl-buffer-size-limit 10000)
      spell-checking
-     treemacs
+     (treemacs :variables
+               treemacs-use-all-the-icons-theme t)
      (version-control :variables
                       version-control-diff-tool 'git-gutter
                       version-control-global-margin t)
@@ -93,7 +101,7 @@ values."
      nginx
      react
      ansible
-     dash
+     ;;dash
      github
      restclient
      (colors :valiables
@@ -103,10 +111,10 @@ values."
    ;; packages, then consider creating a layer. You can also put the
    ;; configuration in `dotspacemacs/user-config'.
    dotspacemacs-additional-packages
-   '(all-the-icons
-     yasnippet-snippets
+   '(yasnippet-snippets
      beacon
-     cider-hydra)
+     cider-hydra
+     org-preview-html)
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
    ;; A list of packages that will not be installed and loaded.
@@ -178,8 +186,8 @@ values."
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
-   dotspacemacs-themes '(spacemacs-dark
-                         spacemacs-light)
+   dotspacemacs-themes '(spacemacs-light
+                         spacemacs-dark)
 
    dotspacemacs-mode-line-theme '(spacemacs :separator wave :separator-scale 1.5)
 
@@ -386,7 +394,8 @@ you should place your code here."
    rainbow-x-colors t
    rainbow-latex-colors t
    rainbow-ansi-colors t
-   projectile-globally-ignored-files '("*.js" "*.cache.transit.json" "*.js.map" "*.jar"))
+   projectile-globally-ignored-files '("*.js" "*.cache.transit.json" "*.js.map" "*.jar")
+   )
 
   ;; Modes
   (global-auto-revert-mode 1)
@@ -417,7 +426,7 @@ you should place your code here."
    ("M-s-," . mc/unmark-previous-like-this)
    ("C-c C->" . mc/mark-all-like-this)
    ("C-q" . treemacs)
-   ("C-'" . imenu-list-smart-toggle)
+   ("C-=" . imenu-list-smart-toggle)
    ("M-n" . (lambda () (interactive) (scroll-up 1)))
    ("M-p" . (lambda () (interactive) (scroll-down 1)))
    ("C-M-/" . ivy-yasnippet)
@@ -469,6 +478,7 @@ you should place your code here."
 
   ;; Org
   (with-eval-after-load 'org
+    (setq org-startup-truncated nil)
     (setq org-hide-leading-stars t)
     (setq org-superstar-headline-bullets-list '("⚡" "" "" "" "" "" "" "" "" ""))
     (setq org-capture-templates
@@ -476,14 +486,37 @@ you should place your code here."
              "* TODO %?\n  %i\n  %a")
             ("m" "Memo" entry (file+datetree "~/aoba17/memo.org")
              "* %?\nEntered on %U\n  %i\n  %a")))
-    (add-hook 'org-mode-hook #'visual-line-mode)
-    (add-hook 'visual-line-mode-hook #'visual-fill-column-mode))
+    ;;(add-hook 'org-mode-hook #'visual-line-mode)
+    ;;(add-hook 'visual-line-mode-hook #'visual-fill-column-mode)
+    )
   (with-eval-after-load 'org-agenda
     (require 'org-projectile)
     (mapcar #'(lambda (file)
                 (when (file-exists-p file)
                   (push file org-agenda-files)))
             (org-projectile-todo-files)))
+
+  ;; clojure-lsp
+  (use-package lsp-mode
+    :ensure t
+    :hook ((clojure-mode . lsp)
+           (clojurec-mode . lsp)
+           (clojurescript-mode . lsp))
+    :config
+    ;; add paths to your local installation of project mgmt tools, like lein
+    (setenv "PATH" (concat
+                    "/usr/local/bin" path-separator
+                    (getenv "PATH")))
+    (dolist (m '(clojure-mode
+                 clojurec-mode
+                 clojurescript-mode
+                 clojurex-mode))
+      (add-to-list 'lsp-language-id-configuration `(,m . "clojure")))
+    (setq lsp-clojure-server-command '("/usr/local/bin/clojure-lsp"))) ;; Optional: In case `clojure-lsp` is not in your $PATH
+
+  (use-package lsp-ui
+    :ensure t
+    :commands lsp-ui-mode)
 
   ;; Other
 
@@ -520,22 +553,25 @@ you should place your code here."
 This is an auto-generated function, do not modify its content directly, use
 Emacs customize menu instead.
 This function is called at the very end of Spacemacs initialization."
-  (custom-set-variables
-   ;; custom-set-variables was added by Custom.
-   ;; If you edit it by hand, you could mess it up, so be careful.
-   ;; Your init file should contain only one such instance.
-   ;; If there is more than one, they won't work right.
-   '(package-selected-packages
-     '(wgrep smex ivy-yasnippet ivy-xref ivy-purpose ivy-hydra flyspell-correct-ivy counsel-projectile counsel-dash counsel-css counsel swiper ivy sql-indent yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic jinja2-mode company-ansible ansible-doc ansible yasnippet-snippets rvm ruby-tools ruby-test-mode rubocop rspec-mode robe rbenv rake minitest chruby bundler inf-ruby company insert-shebang fish-mode company-shell yaml-mode nginx-mode xterm-color shell-pop multi-term eshell-z eshell-prompt-extras esh-help flycheck-pos-tip pos-tip unfill mwim mmm-mode markdown-toc markdown-mode git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gh-md flyspell-correct-helm flyspell-correct diff-hl auto-dictionary tide typescript-mode flycheck web-mode tagedit slim-mode scss-mode sass-mode pug-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data web-beautify livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor js2-mode js-doc company-tern dash-functional tern coffee-mode all-the-icons memoize smeargle reveal-in-osx-finder pbcopy osx-trash osx-dictionary orgit org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download magit-gitflow magit-popup launchctl htmlize helm-gitignore gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit transient git-commit with-editor clj-refactor inflections edn multiple-cursors paredit yasnippet peg cider-eval-sexp-fu cider sesman queue parseedn clojure-mode parseclj a ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))
-   '(safe-local-variable-values
-     '((cider-default-cljs-repl . shadow)
-       (cider-shadow-cljs-default-options . "app"))))
-  (custom-set-faces
-   ;; custom-set-faces was added by Custom.
-   ;; If you edit it by hand, you could mess it up, so be careful.
-   ;; Your init file should contain only one such instance.
-   ;; If there is more than one, they won't work right.
-   '(company-tooltip-common ((t (:inherit company-tooltip :weight bold :underline nil))))
-   '(company-tooltip-common-selection ((t (:inherit company-tooltip-selection :weight bold :underline nil))))
-   '(hydra-posframe-border-face ((t (:background "#6272a4")))))
-  )
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(evil-want-Y-yank-to-eol nil)
+ '(lsp-enable-indentation nil)
+ '(lsp-enable-on-type-formatting nil)
+ '(package-selected-packages
+   '(dap-mode bui sql-indent yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode helm-pydoc cython-mode company-anaconda anaconda-mode pythonic jinja2-mode company-ansible ansible-doc ansible yasnippet-snippets rvm ruby-tools ruby-test-mode rubocop rspec-mode robe rbenv rake minitest chruby bundler inf-ruby company insert-shebang fish-mode company-shell yaml-mode nginx-mode xterm-color shell-pop multi-term eshell-z eshell-prompt-extras esh-help flycheck-pos-tip pos-tip unfill mwim mmm-mode markdown-toc markdown-mode git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gh-md flyspell-correct-helm flyspell-correct diff-hl auto-dictionary tide typescript-mode flycheck web-mode tagedit slim-mode scss-mode sass-mode pug-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data web-beautify livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor js2-mode js-doc company-tern dash-functional tern coffee-mode all-the-icons memoize smeargle reveal-in-osx-finder pbcopy osx-trash osx-dictionary orgit org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download magit-gitflow magit-popup launchctl htmlize helm-gitignore gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit transient git-commit with-editor clj-refactor inflections edn multiple-cursors paredit yasnippet peg cider-eval-sexp-fu cider sesman queue parseedn clojure-mode parseclj a ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))
+ '(safe-local-variable-values
+   '((cider-default-cljs-repl . shadow)
+     (cider-shadow-cljs-default-options . "app"))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(company-tooltip-common ((t (:inherit company-tooltip :weight bold :underline nil))))
+ '(company-tooltip-common-selection ((t (:inherit company-tooltip-selection :weight bold :underline nil))))
+ '(hydra-posframe-border-face ((t (:background "#6272a4")))))
+)
